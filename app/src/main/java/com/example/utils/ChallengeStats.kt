@@ -15,12 +15,12 @@ data class ChallengeStats(
 )
 
 object StatsEngine {
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     fun calculateStats(
         challenge: Challenge,
         completions: List<CompletionRecord>
     ): ChallengeStats {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val completedDatesSet = completions.map { it.date }.toSet()
         val totalCompletions = completedDatesSet.size
 
@@ -74,6 +74,8 @@ object StatsEngine {
 
     private fun calculateStreaks(completedDates: Set<String>): Pair<Int, Int> {
         if (completedDates.isEmpty()) return Pair(0, 0)
+
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
         // Parse and sort dates ascending
         val dates = completedDates.mapNotNull {
