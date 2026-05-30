@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -134,46 +136,19 @@ fun CreateChallengeScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().testTag("add_challenge_category_row"),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        // Scrollable categories selection row
-                        Column {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                categories.take(4).forEach { cat ->
-                                    val isSelected = selectedCategory == cat
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = { selectedCategory = cat },
-                                        label = { Text(cat) },
-                                        modifier = Modifier.testTag("chip_cat_$cat")
-                                    )
-                                }
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                categories.drop(4).forEach { cat ->
-                                    val isSelected = selectedCategory == cat
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = { selectedCategory = cat },
-                                        label = { Text(cat) },
-                                        modifier = Modifier.testTag("chip_cat_$cat")
-                                    )
-                                }
-                            }
-                        }
+                    items(categories) { cat ->
+                        val isSelected = selectedCategory == cat
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedCategory = cat },
+                            label = { Text(cat) },
+                            modifier = Modifier.testTag("chip_cat_$cat")
+                        )
                     }
                 }
             }

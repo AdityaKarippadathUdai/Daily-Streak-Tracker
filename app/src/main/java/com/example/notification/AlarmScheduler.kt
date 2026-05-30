@@ -74,8 +74,8 @@ object AlarmScheduler {
                 )
             }
             Log.d(TAG, "Scheduled reminder for challenge ${challenge.id} (${challenge.title}) at ${calendar.time}")
-        } catch (e: SecurityException) {
-            // Under Android 12+, exact alarms might fail if permission isn't declared. Fallback to setAndAllowWhileIdle
+        } catch (e: Exception) {
+            // Under Android 12+, exact alarms might fail if permission isn't declared or due to background limitations. Fallback to set
             try {
                 alarmManager.set(
                     AlarmManager.RTC_WAKEUP,
