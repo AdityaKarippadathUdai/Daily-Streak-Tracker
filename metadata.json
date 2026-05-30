@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Daily Challenge",
+  "description": "Build high-quality habits with daily challenges, streaks, progress analytics, notifications, and achievements.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
