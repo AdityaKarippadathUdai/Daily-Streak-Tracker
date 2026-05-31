@@ -8,7 +8,7 @@ import com.example.data.model.Challenge
 import com.example.data.model.CompletionRecord
 import com.example.data.model.Task
 
-@Database(entities = [Challenge::class, CompletionRecord::class, Task::class], version = 2, exportSchema = false)
+@Database(entities = [Challenge::class, CompletionRecord::class, Task::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun challengeDao(): ChallengeDao
     abstract fun completionRecordDao(): CompletionRecordDao

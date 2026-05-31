@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -10,6 +11,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,6 +40,7 @@ fun CreateTaskScreen(
     var description by remember { mutableStateOf("") }
     var deadlineDate by remember { mutableStateOf<Date>(Date(System.currentTimeMillis() + 86400000)) } // default: tomorrow
     var titleError by remember { mutableStateOf<String?>(null) }
+    var reminderTime by remember { mutableStateOf<String?>(null) } // HH:mm format, null if no reminder
 
     val formattedDeadline = remember(deadlineDate) {
         val sdf = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault())
@@ -184,7 +188,93 @@ fun CreateTaskScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            // Daily Task Reminder Picker
+            Column {
+                Text(
+                    text = "Daily Reminder Time",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val isDark = MaterialTheme.colorScheme.background.red < 0.1f
+                val cardBg = if (isDark) Color(0xFF161618) else MaterialTheme.colorScheme.surfaceVariant
+                val borderCol = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Transparent
+
+                Card(
+                    onClick = {
+                        val calendar = Calendar.getInstance()
+                        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+                        val currentMin = calendar.get(Calendar.MINUTE)
+                        TimePickerDialog(
+                            context,
+                            { _, hour, minute ->
+                                val timeStr = String.format("%02d:%02d", hour, minute)
+                                reminderTime = timeStr
+                            },
+                            currentHour,
+                            currentMin,
+                            true
+                        ).show()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, borderCol, RoundedCornerShape(16.dp))
+                        .testTag("task_reminder_time_card"),
+                    colors = CardDefaults.cardColors(containerColor = cardBg),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = if (reminderTime != null) Icons.Default.NotificationsActive else Icons.Default.AccessTime,
+                                contentDescription = "Reminder Icon",
+                                tint = if (reminderTime != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = if (reminderTime != null) "Remind me daily at $reminderTime" else "No reminder alarm configured",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (reminderTime != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            )
+                        }
+
+                        if (reminderTime != null) {
+                            TextButton(
+                                onClick = { reminderTime = null },
+                                modifier = Modifier.testTag("clear_task_reminder_button")
+                            ) {
+                                Text(
+                                    text = "Clear",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = "Set Time",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Launch Task Button
             Button(
@@ -195,7 +285,8 @@ fun CreateTaskScreen(
                         viewModel.createTask(
                             title = title.trim(),
                             description = description.trim(),
-                            deadline = deadlineDate.time
+                            deadline = deadlineDate.time,
+                            reminderTime = reminderTime
                         )
                         onNavigateBack()
                     }

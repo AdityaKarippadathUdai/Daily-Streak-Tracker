@@ -33,6 +33,11 @@
             android:exported="false" />
 
         <receiver
+            android:name="com.example.notification.TaskReminderReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
             android:name="com.example.notification.BootCompletedReceiver"
             android:enabled="true"
             android:exported="true">

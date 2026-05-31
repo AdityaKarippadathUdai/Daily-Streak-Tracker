@@ -38,5 +38,6 @@ data class Task(
     val deadline: Long, // timestamp for completion deadline
     val completed: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
-    val completedAt: Long? = null
+    val completedAt: Long? = null,
+    val reminderTime: String? = null // HH:mm format, null if no reminder
 ) : Serializable

@@ -1240,6 +1240,27 @@ fun TaskItemCard(
                         color = stateColor
                     )
                 }
+
+                if (task.reminderTime != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsActive,
+                            contentDescription = "Task Reminder Active",
+                            tint = if (task.completed) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else Color(0xFFF59E0B),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = "Reminding daily at ${task.reminderTime}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (task.completed) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             IconButton(

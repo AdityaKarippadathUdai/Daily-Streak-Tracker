@@ -179,15 +179,19 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     // Create a new Task
-    fun createTask(title: String, description: String, deadline: Long) {
+    fun createTask(title: String, description: String, deadline: Long, reminderTime: String?) {
         viewModelScope.launch(Dispatchers.IO) {
             val task = com.example.data.model.Task(
                 title = title,
                 description = description,
                 deadline = deadline,
-                completed = false
+                completed = false,
+                reminderTime = reminderTime
             )
-            repository.insertTask(task)
+            val newId = repository.insertTask(task)
+            if (reminderTime != null) {
+                AlarmScheduler.scheduleTaskReminder(getApplication(), task.copy(id = newId.toInt()))
+            }
         }
     }
 
@@ -199,12 +203,18 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
                 completedAt = if (!task.completed) System.currentTimeMillis() else null
             )
             repository.updateTask(updated)
+            if (updated.completed) {
+                AlarmScheduler.cancelTaskReminder(getApplication(), task.id)
+            } else if (updated.reminderTime != null) {
+                AlarmScheduler.scheduleTaskReminder(getApplication(), updated)
+            }
         }
     }
 
     // Delete a Task
     fun deleteTask(task: com.example.data.model.Task) {
         viewModelScope.launch(Dispatchers.IO) {
+            AlarmScheduler.cancelTaskReminder(getApplication(), task.id)
             repository.deleteTask(task)
         }
     }

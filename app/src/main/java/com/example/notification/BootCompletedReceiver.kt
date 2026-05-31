@@ -21,6 +21,12 @@ class BootCompletedReceiver : BroadcastReceiver() {
                             AlarmScheduler.scheduleReminder(context, challenge)
                         }
                     }
+                    val tasks = db.taskDao().getAllTasks().first()
+                    for (task in tasks) {
+                        if (!task.completed && task.reminderTime != null) {
+                            AlarmScheduler.scheduleTaskReminder(context, task)
+                        }
+                    }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
