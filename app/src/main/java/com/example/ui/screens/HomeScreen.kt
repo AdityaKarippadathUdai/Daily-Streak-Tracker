@@ -149,63 +149,193 @@ fun HomeScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Column(
+        val templates = remember(selectedCategoryFilter) {
+            if (selectedCategoryFilter == "All") {
+                ChallengeTemplates.templates
+            } else {
+                ChallengeTemplates.templates.filter { it.category.equals(selectedCategoryFilter, ignoreCase = true) }
+            }
+        }
+
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .testTag("home_scrollable_container"),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Stats Panel
-            StreakHeaderCard(
-                currentStreak = bestCurrentStreak,
-                completedTodayCount = totalCompletedCountToday,
-                totalChallengesCount = totalActiveCount,
-                progressFraction = progressToday
-            )
+            // Top spacer
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
+            }
 
-            // Categories Filter Chips
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(categories) { category ->
-                    FilterChip(
-                        selected = (selectedCategoryFilter == category),
-                        onClick = { selectedCategoryFilter = category },
-                        label = { Text(category) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+            // 1. Stats Panel
+            item {
+                StreakHeaderCard(
+                    currentStreak = bestCurrentStreak,
+                    completedTodayCount = totalCompletedCountToday,
+                    totalChallengesCount = totalActiveCount,
+                    progressFraction = progressToday
+                )
+            }
+
+            // 2. Categories Filter Chips
+            item {
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(categories) { category ->
+                        FilterChip(
+                            selected = (selectedCategoryFilter == category),
+                            onClick = { selectedCategoryFilter = category },
+                            label = { Text(category) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            modifier = Modifier.testTag("chip_$category")
                         )
-                    )
+                    }
                 }
             }
 
-            // Challenge List
+            // 3. Challenges or Empty state
             if (filteredChallenges.isEmpty()) {
-                EmptyOnboardingState(
-                    selectedCategory = selectedCategoryFilter,
-                    onTemplateSelect = { template ->
-                        viewModel.addChallengeFromTemplate(template)
-                        Toast.makeText(context, "Added challenge: ${template.title}", Toast.LENGTH_SHORT).show()
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .testTag("empty_onboarding_container"),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Top
+                    ) {
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Icon(
+                            imageVector = Icons.Default.TrackChanges,
+                            contentDescription = "No Challenges",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.size(72.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Step Up to the Challenge!",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Create a custom habit challenge or start instantly with one of the popular templates below:",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = "Recommended Templates",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .align(Alignment.Start)
+                                .padding(vertical = 8.dp)
+                        )
                     }
-                )
+                }
+
+                items(templates) { template ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                    ) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.addChallengeFromTemplate(template)
+                                    Toast.makeText(context, "Added challenge: ${template.title}", Toast.LENGTH_SHORT).show()
+                                }
+                                .testTag("template_${template.title.replace(" ", "_")}"),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            ),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val templateColor = remember {
+                                    try {
+                                        Color(android.graphics.Color.parseColor(template.colorHex))
+                                    } catch (e: Exception) {
+                                        Color(0xFF3B82F6)
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(templateColor.copy(alpha = 0.15f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = getCategoryIcon(template.category),
+                                        contentDescription = null,
+                                        tint = templateColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = template.title,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = template.description,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                Icon(
+                                    imageVector = Icons.Default.AddCircle,
+                                    contentDescription = "Add Template",
+                                    tint = templateColor,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
             } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 80.dp)
-                ) {
-                    item {
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                    items(filteredChallenges, key = { it.id }) { challenge ->
-                        val challengeCompletions = completions.filter { it.challengeId == challenge.id }
-                        val isTodayCompleted = todayCompletions[challenge.id] ?: false
-                        
+                items(filteredChallenges, key = { it.id }) { challenge ->
+                    val challengeCompletions = completions.filter { it.challengeId == challenge.id }
+                    val isTodayCompleted = todayCompletions[challenge.id] ?: false
+                    
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
                         SwipeableChallengeCard(
                             challenge = challenge,
                             completions = challengeCompletions,
@@ -214,10 +344,20 @@ fun HomeScreen(
                             onToggleComplete = { viewModel.toggleTodayCompletion(challenge.id) }
                         )
                     }
-                    item {
-                        Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
                         MiniHeatmapView(completions = completions)
                     }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(80.dp))
                 }
             }
         }
@@ -514,139 +654,6 @@ fun ChallengeCard(
                             modifier = Modifier
                                 .size(20.dp)
                                 .background(themeColor, CircleShape)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun EmptyOnboardingState(
-    selectedCategory: String,
-    onTemplateSelect: (ChallengeTemplate) -> Unit
-) {
-    val templates = remember(selectedCategory) {
-        if (selectedCategory == "All") {
-            ChallengeTemplates.templates
-        } else {
-            ChallengeTemplates.templates.filter { it.category.equals(selectedCategory, ignoreCase = true) }
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Spacer(modifier = Modifier.height(30.dp))
-        
-        Icon(
-            imageVector = Icons.Default.TrackChanges,
-            contentDescription = "No Challenges",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-            modifier = Modifier.size(72.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Step Up to the Challenge!",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Create a custom habit challenge or start instantly with one of the popular templates below:",
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Recommended Templates",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .align(Alignment.Start)
-                .padding(vertical = 8.dp)
-        )
-
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(templates) { template ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onTemplateSelect(template) }
-                        .testTag("template_${template.title.replace(" ", "_")}"),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                    ),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val templateColor = remember {
-                            try {
-                                Color(android.graphics.Color.parseColor(template.colorHex))
-                            } catch (e: Exception) {
-                                Color(0xFF3B82F6)
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(templateColor.copy(alpha = 0.15f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = getCategoryIcon(template.category),
-                                contentDescription = null,
-                                tint = templateColor,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = template.title,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = template.description,
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        Icon(
-                            imageVector = Icons.Default.AddCircle,
-                            contentDescription = "Add Template",
-                            tint = templateColor,
-                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
