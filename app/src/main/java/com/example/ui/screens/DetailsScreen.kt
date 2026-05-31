@@ -206,6 +206,39 @@ fun DetailsScreen(
                 }
             }
 
+            // Today's Status Card & Interactive Button
+            val todayCompletions by viewModel.todayCompletedState.collectAsState()
+            val isCompletedToday = todayCompletions[challengeId] ?: false
+
+            Button(
+                onClick = { viewModel.toggleTodayCompletion(challengeId) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .testTag("details_toggle_complete"),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isCompletedToday) Color(0xFF10B981) else themeColor,
+                    contentColor = if (isCompletedToday) Color.Black else Color.White
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isCompletedToday) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = if (isCompletedToday) "Completed Today! (Tap to Undo)" else "Mark Today as Done",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
             // Streaks Panel Grid
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -496,7 +496,12 @@ fun ChallengeCard(
                             .background(Color(0xFF10B981), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("✓", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Completed Today",
+                            tint = Color.Black,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 } else {
                     Box(
