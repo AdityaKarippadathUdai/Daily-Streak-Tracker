@@ -6,11 +6,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.data.model.Challenge
 import com.example.data.model.CompletionRecord
+import com.example.data.model.Task
 
-@Database(entities = [Challenge::class, CompletionRecord::class], version = 1, exportSchema = false)
+@Database(entities = [Challenge::class, CompletionRecord::class, Task::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun challengeDao(): ChallengeDao
     abstract fun completionRecordDao(): CompletionRecordDao
+    abstract fun taskDao(): TaskDao
 
     companion object {
         @Volatile

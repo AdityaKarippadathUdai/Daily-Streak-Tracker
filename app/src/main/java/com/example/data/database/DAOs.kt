@@ -3,6 +3,7 @@ package com.example.data.database
 import androidx.room.*
 import com.example.data.model.Challenge
 import com.example.data.model.CompletionRecord
+import com.example.data.model.Task
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -42,4 +43,22 @@ interface CompletionRecordDao {
 
     @Query("SELECT * FROM completion_records WHERE challengeId = :challengeId AND date = :date LIMIT 1")
     suspend fun getCompletionForChallengeAndDate(challengeId: Int, date: String): CompletionRecord?
+}
+
+@Dao
+interface TaskDao {
+    @Query("SELECT * FROM tasks ORDER BY deadline ASC")
+    fun getAllTasks(): Flow<List<Task>>
+
+    @Query("SELECT * FROM tasks WHERE id = :id")
+    suspend fun getTaskById(id: Int): Task?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTask(task: Task): Long
+
+    @Update
+    suspend fun updateTask(task: Task)
+
+    @Delete
+    suspend fun deleteTask(task: Task)
 }

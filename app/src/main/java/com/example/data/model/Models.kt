@@ -29,3 +29,14 @@ data class CompletionRecord(
     val completed: Boolean = true,
     val timestamp: Long = System.currentTimeMillis()
 ) : Serializable
+
+@Entity(tableName = "tasks")
+data class Task(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val title: String,
+    val description: String,
+    val deadline: Long, // timestamp for completion deadline
+    val completed: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis(),
+    val completedAt: Long? = null
+) : Serializable

@@ -28,15 +28,17 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
     private val sharedPrefs: SharedPreferences =
         application.getSharedPreferences("daily_challenge_prefs", Context.MODE_PRIVATE)
 
-    // Flow of all challenges and records
+    // Flow of all tasks, challenges and records
     val allChallenges: Flow<List<Challenge>>
     val allCompletionRecords: Flow<List<CompletionRecord>>
+    val allTasks: Flow<List<com.example.data.model.Task>>
 
     // Live combined UI states
     val activeChallengesState: StateFlow<List<Challenge>>
     val archivedChallengesState: StateFlow<List<Challenge>>
     val todayCompletedState: StateFlow<Map<Int, Boolean>> // challengeId -> completed today
     val completionsListState: StateFlow<List<CompletionRecord>>
+    val allTasksState: StateFlow<List<com.example.data.model.Task>>
 
     // Theme state: "light", "dark", "system"
     private val _themeState = MutableStateFlow(sharedPrefs.getString("theme", "system") ?: "system")
@@ -44,10 +46,11 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         val database = AppDatabase.getDatabase(application)
-        repository = ChallengeRepository(database.challengeDao(), database.completionRecordDao())
+        repository = ChallengeRepository(database.challengeDao(), database.completionRecordDao(), database.taskDao())
 
         allChallenges = repository.allChallenges
         allCompletionRecords = repository.allCompletionRecords
+        allTasks = repository.allTasks
 
         // Active challenges
         activeChallengesState = allChallenges.map { list ->
@@ -67,6 +70,12 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
         completionsListState = allCompletionRecords.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
+
+        allTasksState = allTasks.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
             emptyList()
@@ -166,6 +175,37 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch(Dispatchers.IO) {
             AlarmScheduler.cancelReminder(getApplication(), challenge.id)
             repository.deleteChallenge(challenge)
+        }
+    }
+
+    // Create a new Task
+    fun createTask(title: String, description: String, deadline: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val task = com.example.data.model.Task(
+                title = title,
+                description = description,
+                deadline = deadline,
+                completed = false
+            )
+            repository.insertTask(task)
+        }
+    }
+
+    // Toggle Task Completion State
+    fun toggleTaskCompletion(task: com.example.data.model.Task) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val updated = task.copy(
+                completed = !task.completed,
+                completedAt = if (!task.completed) System.currentTimeMillis() else null
+            )
+            repository.updateTask(updated)
+        }
+    }
+
+    // Delete a Task
+    fun deleteTask(task: com.example.data.model.Task) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteTask(task)
         }
     }
 

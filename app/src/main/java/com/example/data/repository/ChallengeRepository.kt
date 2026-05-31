@@ -2,16 +2,20 @@ package com.example.data.repository
 
 import com.example.data.database.ChallengeDao
 import com.example.data.database.CompletionRecordDao
+import com.example.data.database.TaskDao
 import com.example.data.model.Challenge
 import com.example.data.model.CompletionRecord
+import com.example.data.model.Task
 import kotlinx.coroutines.flow.Flow
 
 class ChallengeRepository(
     private val challengeDao: ChallengeDao,
-    private val completionRecordDao: CompletionRecordDao
+    private val completionRecordDao: CompletionRecordDao,
+    private val taskDao: TaskDao
 ) {
     val allChallenges: Flow<List<Challenge>> = challengeDao.getAllChallenges()
     val allCompletionRecords: Flow<List<CompletionRecord>> = completionRecordDao.getAllCompletionRecords()
+    val allTasks: Flow<List<Task>> = taskDao.getAllTasks()
 
     suspend fun getChallengeById(id: Int): Challenge? {
         return challengeDao.getChallengeById(id)
@@ -55,5 +59,17 @@ class ChallengeRepository(
 
     fun getCompletionsByChallenge(challengeId: Int): Flow<List<CompletionRecord>> {
         return completionRecordDao.getCompletionsByChallenge(challengeId)
+    }
+
+    suspend fun insertTask(task: Task): Long {
+        return taskDao.insertTask(task)
+    }
+
+    suspend fun updateTask(task: Task) {
+        taskDao.updateTask(task)
+    }
+
+    suspend fun deleteTask(task: Task) {
+        taskDao.deleteTask(task)
     }
 }

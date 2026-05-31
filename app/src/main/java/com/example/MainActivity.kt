@@ -170,6 +170,9 @@ fun AppMainShell(viewModel: ChallengeViewModel) {
                     },
                     onNavigateToDetails = { challengeId ->
                         navController.navigate("challenge_details/$challengeId")
+                    },
+                    onNavigateToCreateTask = {
+                        navController.navigate("create_task")
                     }
                 )
             }
@@ -192,6 +195,16 @@ fun AppMainShell(viewModel: ChallengeViewModel) {
             // Create Challenge
             composable("create_challenge") {
                 CreateChallengeScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // Create Task
+            composable("create_task") {
+                CreateTaskScreen(
                     viewModel = viewModel,
                     onNavigateBack = {
                         navController.popBackStack()

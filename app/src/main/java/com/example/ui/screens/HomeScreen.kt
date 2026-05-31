@@ -46,21 +46,37 @@ import java.util.Locale
 fun HomeScreen(
     viewModel: ChallengeViewModel,
     onNavigateToCreate: () -> Unit,
-    onNavigateToDetails: (Int) -> Unit
+    onNavigateToDetails: (Int) -> Unit,
+    onNavigateToCreateTask: () -> Unit
 ) {
     val activeChallenges by viewModel.activeChallengesState.collectAsState()
     val completions by viewModel.allCompletionRecords.collectAsState(initial = emptyList())
     val todayCompletions by viewModel.todayCompletedState.collectAsState()
+    val allTasks by viewModel.allTasksState.collectAsState()
     val context = LocalContext.current
 
+    var currentTab by remember { mutableStateOf("habits") } // "habits" or "tasks"
     var selectedCategoryFilter by remember { mutableStateOf("All") }
     val categories = listOf("All", "Coding", "Reading", "Fitness", "Health", "Photography", "Meditation", "Learning")
+
+    var selectedTaskFilter by remember { mutableStateOf("All") } // "All", "Pending", "Completed", "Overdue"
+    val taskFilters = listOf("All", "Pending", "Completed", "Overdue")
 
     val filteredChallenges = remember(activeChallenges, selectedCategoryFilter) {
         if (selectedCategoryFilter == "All") {
             activeChallenges
         } else {
             activeChallenges.filter { it.category.equals(selectedCategoryFilter, ignoreCase = true) }
+        }
+    }
+
+    val filteredTasks = remember(allTasks, selectedTaskFilter) {
+        val now = System.currentTimeMillis()
+        when (selectedTaskFilter) {
+            "Pending" -> allTasks.filter { !it.completed && it.deadline >= now }
+            "Completed" -> allTasks.filter { it.completed }
+            "Overdue" -> allTasks.filter { !it.completed && it.deadline < now }
+            else -> allTasks
         }
     }
 
@@ -87,7 +103,9 @@ fun HomeScreen(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
                     ) {
                         Column {
                             val todayDateStr = remember {
@@ -103,8 +121,8 @@ fun HomeScreen(
                                 letterSpacing = 1.5.sp
                             )
                             Text(
-                                text = "Daily Challenge",
-                                fontSize = 22.sp,
+                                text = if (currentTab == "habits") "Daily Challenges" else "Scheduled Tasks",
+                                fontSize = 21.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
@@ -132,17 +150,23 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToCreate,
+                onClick = {
+                    if (currentTab == "habits") {
+                        onNavigateToCreate()
+                    } else {
+                        onNavigateToCreateTask()
+                    }
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .size(56.dp)
-                    .testTag("add_challenge_button")
+                    .testTag("add_item_button")
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Create Challenge",
+                    contentDescription = if (currentTab == "habits") "Create Challenge" else "Create Task",
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -157,207 +181,366 @@ fun HomeScreen(
             }
         }
 
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .testTag("home_scrollable_container"),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Top spacer
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-
-            // 1. Stats Panel
-            item {
-                StreakHeaderCard(
-                    currentStreak = bestCurrentStreak,
-                    completedTodayCount = totalCompletedCountToday,
-                    totalChallengesCount = totalActiveCount,
-                    progressFraction = progressToday
-                )
-            }
-
-            // 2. Categories Filter Chips
-            item {
-                LazyRow(
+            // Screen Segment Tab Toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .background(
+                        color = if (MaterialTheme.colorScheme.background.red < 0.1f) Color(0xFF161618) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Habits Tab
+                val isHabits = currentTab == "habits"
+                val habitsBg = if (isHabits) MaterialTheme.colorScheme.primary else Color.Transparent
+                val habitsText = if (isHabits) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .weight(1f)
+                        .height(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(habitsBg)
+                        .clickable { currentTab = "habits" }
+                        .testTag("tab_toggle_habits"),
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(categories) { category ->
-                        FilterChip(
-                            selected = (selectedCategoryFilter == category),
-                            onClick = { selectedCategoryFilter = category },
-                            label = { Text(category) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            modifier = Modifier.testTag("chip_$category")
-                        )
-                    }
+                    Text(
+                        text = "Habit Challenges",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = habitsText
+                    )
+                }
+
+                // Tasks Tab
+                val isTasks = currentTab == "tasks"
+                val tasksBg = if (isTasks) MaterialTheme.colorScheme.primary else Color.Transparent
+                val tasksText = if (isTasks) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(tasksBg)
+                        .clickable { currentTab = "tasks" }
+                        .testTag("tab_toggle_tasks"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "One-off Tasks",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = tasksText
+                    )
                 }
             }
 
-            // 3. Challenges or Empty state
-            if (filteredChallenges.isEmpty()) {
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
-                            .testTag("empty_onboarding_container"),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Top
-                    ) {
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Icon(
-                            imageVector = Icons.Default.TrackChanges,
-                            contentDescription = "No Challenges",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                            modifier = Modifier.size(72.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Step Up to the Challenge!",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Create a custom habit challenge or start instantly with one of the popular templates below:",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text(
-                            text = "Recommended Templates",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .align(Alignment.Start)
-                                .padding(vertical = 8.dp)
+            if (currentTab == "habits") {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("home_scrollable_container"),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Top spacer
+                    item {
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    // 1. Stats Panel
+                    item {
+                        StreakHeaderCard(
+                            currentStreak = bestCurrentStreak,
+                            completedTodayCount = totalCompletedCountToday,
+                            totalChallengesCount = totalActiveCount,
+                            progressFraction = progressToday
                         )
                     }
-                }
 
-                items(templates) { template ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
-                    ) {
-                        Card(
+                    // 2. Categories Filter Chips
+                    item {
+                        LazyRow(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    viewModel.addChallengeFromTemplate(template)
-                                    Toast.makeText(context, "Added challenge: ${template.title}", Toast.LENGTH_SHORT).show()
-                                }
-                                .testTag("template_${template.title.replace(" ", "_")}"),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                            ),
-                            shape = MaterialTheme.shapes.medium
+                                .padding(vertical = 4.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val templateColor = remember {
-                                    try {
-                                        Color(android.graphics.Color.parseColor(template.colorHex))
-                                    } catch (e: Exception) {
-                                        Color(0xFF3B82F6)
-                                    }
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(templateColor.copy(alpha = 0.15f), CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = getCategoryIcon(template.category),
-                                        contentDescription = null,
-                                        tint = templateColor,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = template.title,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = template.description,
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-
-                                Icon(
-                                    imageVector = Icons.Default.AddCircle,
-                                    contentDescription = "Add Template",
-                                    tint = templateColor,
-                                    modifier = Modifier.size(24.dp)
+                            items(categories) { category ->
+                                FilterChip(
+                                    selected = (selectedCategoryFilter == category),
+                                    onClick = { selectedCategoryFilter = category },
+                                    label = { Text(category) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    modifier = Modifier.testTag("chip_$category")
                                 )
                             }
                         }
                     }
-                }
 
-                item {
-                    Spacer(modifier = Modifier.height(80.dp))
+                    // 3. Challenges or Empty state
+                    if (filteredChallenges.isEmpty()) {
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp)
+                                    .testTag("empty_onboarding_container"),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Top
+                            ) {
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Icon(
+                                    imageVector = Icons.Default.TrackChanges,
+                                    contentDescription = "No Challenges",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(72.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Step Up to the Challenge!",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Create a custom habit challenge or start instantly with one of the popular templates below:",
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Text(
+                                    text = "Recommended Templates",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .align(Alignment.Start)
+                                        .padding(vertical = 8.dp)
+                                )
+                            }
+                        }
+
+                        items(templates) { template ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp)
+                            ) {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            viewModel.addChallengeFromTemplate(template)
+                                            Toast.makeText(context, "Added challenge: ${template.title}", Toast.LENGTH_SHORT).show()
+                                        }
+                                        .testTag("template_${template.title.replace(" ", "_")}"),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                    ),
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        val templateColor = remember {
+                                            try {
+                                                Color(android.graphics.Color.parseColor(template.colorHex))
+                                            } catch (e: Exception) {
+                                                Color(0xFF3B82F6)
+                                            }
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .background(templateColor.copy(alpha = 0.15f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = getCategoryIcon(template.category),
+                                                contentDescription = null,
+                                                tint = templateColor,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = template.title,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onBackground
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = template.description,
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+
+                                        Icon(
+                                            imageVector = Icons.Default.AddCircle,
+                                            contentDescription = "Add Template",
+                                            tint = templateColor,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(80.dp))
+                        }
+                    } else {
+                        items(filteredChallenges, key = { it.id }) { challenge ->
+                            val challengeCompletions = completions.filter { it.challengeId == challenge.id }
+                            val isTodayCompleted = todayCompletions[challenge.id] ?: false
+                            
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            ) {
+                                SwipeableChallengeCard(
+                                    challenge = challenge,
+                                    completions = challengeCompletions,
+                                    isCompletedToday = isTodayCompleted,
+                                    onCardClick = { onNavigateToDetails(challenge.id) },
+                                    onToggleComplete = { viewModel.toggleTodayCompletion(challenge.id) }
+                                )
+                            }
+                        }
+
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            ) {
+                                MiniHeatmapView(completions = completions)
+                            }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(80.dp))
+                        }
+                    }
                 }
             } else {
-                items(filteredChallenges, key = { it.id }) { challenge ->
-                    val challengeCompletions = completions.filter { it.challengeId == challenge.id }
-                    val isTodayCompleted = todayCompletions[challenge.id] ?: false
-                    
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        SwipeableChallengeCard(
-                            challenge = challenge,
-                            completions = challengeCompletions,
-                            isCompletedToday = isTodayCompleted,
-                            onCardClick = { onNavigateToDetails(challenge.id) },
-                            onToggleComplete = { viewModel.toggleTodayCompletion(challenge.id) }
+                // One-off Tasks Tab Layout
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("tasks_scrollable_container"),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        TaskHeaderCard(
+                            totalTasks = allTasks.size,
+                            completedTasks = allTasks.count { it.completed }
                         )
                     }
-                }
 
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        MiniHeatmapView(completions = completions)
+                    // Task filter chips Row
+                    item {
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(taskFilters) { filter ->
+                                FilterChip(
+                                    selected = (selectedTaskFilter == filter),
+                                    onClick = { selectedTaskFilter = filter },
+                                    label = { Text(filter) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    modifier = Modifier.testTag("task_chip_$filter")
+                                )
+                            }
+                        }
                     }
-                }
 
-                item {
-                    Spacer(modifier = Modifier.height(80.dp))
+                    if (filteredTasks.isEmpty()) {
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 40.dp)
+                                    .testTag("empty_tasks_container"),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "No Tasks",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(72.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "All Clear!",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = if (selectedTaskFilter == "All") 
+                                        "No tasks have been added yet. Click the + button to launch your first targeted task."
+                                        else "No tasks found matching high-priority filter: $selectedTaskFilter.",
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    } else {
+                        items(filteredTasks, key = { it.id }) { task ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            ) {
+                                TaskItemCard(
+                                    task = task,
+                                    onToggleComplete = { viewModel.toggleTaskCompletion(task) },
+                                    onDelete = { viewModel.deleteTask(task) }
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(80.dp))
+                    }
                 }
             }
         }
@@ -869,4 +1052,207 @@ fun SwipeableChallengeCard(
         },
         modifier = modifier
     )
+}
+
+@Composable
+fun TaskHeaderCard(
+    totalTasks: Int,
+    completedTasks: Int
+) {
+    val progress = if (totalTasks > 0) completedTasks.toFloat() / totalTasks else 0f
+    val isDark = MaterialTheme.colorScheme.background.red < 0.1f
+    val cardBg = if (isDark) {
+        Brush.verticalGradient(listOf(Color(0xFF1E293B), Color(0xFF0F172A)))
+    } else {
+        Brush.verticalGradient(listOf(Color(0xFFEFF6FF), Color(0xFFDBEAFE)))
+    }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .testTag("task_header_card"),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Box(modifier = Modifier.background(cardBg).padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1.3f)) {
+                    Text(
+                        text = "TASK PIPELINE",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
+                        letterSpacing = 1.2.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (totalTasks == 0) "No tasks yet!" else "$completedTasks of $totalTasks Completed",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = if (totalTasks == 0) "Create a task with a deadline below to start tracking!" 
+                               else "Focus and cross these items off before their deadlines hit.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                Box(
+                    modifier = Modifier.size(60.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxSize(),
+                        color = if (isDark) Color(0xFF3B82F6) else Color(0xFF2563EB),
+                        trackColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                        strokeWidth = 6.dp,
+                    )
+                    Text(
+                        text = "${(progress * 100).toInt()}%",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TaskItemCard(
+    task: com.example.data.model.Task,
+    onToggleComplete: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val isDark = MaterialTheme.colorScheme.background.red < 0.1f
+    val cardBg = if (isDark) Color(0xFF121214) else MaterialTheme.colorScheme.surface
+    val borderCol = if (task.completed) {
+        Color(0xFF10B981).copy(alpha = 0.3f)
+    } else {
+        if (System.currentTimeMillis() > task.deadline) Color(0xFFEF4444).copy(alpha = 0.3f)
+        else if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)
+    }
+
+    val stateColor = if (task.completed) {
+        Color(0xFF10B981)
+    } else {
+        if (System.currentTimeMillis() > task.deadline) Color(0xFFEF4444)
+        else MaterialTheme.colorScheme.primary
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, borderCol, RoundedCornerShape(16.dp))
+            .testTag("task_card_${task.id}"),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Custom check target checkbox
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(stateColor.copy(alpha = 0.1f))
+                    .border(2.dp, stateColor, CircleShape)
+                    .clickable { onToggleComplete() }
+                    .testTag("task_checkbox_${task.id}"),
+                contentAlignment = Alignment.Center
+            ) {
+                if (task.completed) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Completed Check icon",
+                        tint = stateColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = task.title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (task.completed) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface,
+                    textDecoration = if (task.completed) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+                )
+                
+                if (task.description.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = task.description,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (task.completed) 0.6f else 1f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Deadline text
+                val sdfValue = remember { java.text.SimpleDateFormat("MMM d, yyyy 'at' hh:mm a", java.util.Locale.getDefault()) }
+                val deadlineStr = remember(task.deadline) { sdfValue.format(java.util.Date(task.deadline)) }
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val now = System.currentTimeMillis()
+                    val isOverdue = !task.completed && now > task.deadline
+                    
+                    Icon(
+                        imageVector = if (task.completed) Icons.Default.CheckCircle else if (isOverdue) Icons.Default.Warning else Icons.Default.AccessTime,
+                        contentDescription = "Status Icon",
+                        tint = stateColor,
+                        modifier = Modifier.size(14.dp)
+                    )
+
+                    Text(
+                        text = if (task.completed) {
+                            "Completed on ${sdfValue.format(java.util.Date(task.completedAt ?: task.createdAt))}"
+                        } else {
+                            if (isOverdue) "Overdue (deadline was $deadlineStr)" else "Deadline: $deadlineStr"
+                        },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = stateColor
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.testTag("task_delete_${task.id}")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Task",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
 }
