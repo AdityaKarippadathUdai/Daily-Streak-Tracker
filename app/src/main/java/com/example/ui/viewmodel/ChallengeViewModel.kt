@@ -231,7 +231,7 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
             val totalChallengesCount = active.size
 
             if (active.isEmpty()) {
-                return@combine GlobalStats(0, 0, 0f, 0, emptyList(), emptyList())
+                return@combine GlobalStats(0, 0, 0f, 0, emptyList(), emptyList(), null)
             }
 
             var totalCompletions = 0
@@ -258,6 +258,8 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
             val completedToday = records.filter { it.challengeId in activeIds && it.date == SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }.size
             val completionRateToday = if (totalPossibilitiesToday > 0) completedToday.toFloat() / totalPossibilitiesToday else 0f
 
+            val overallStreakDetails = StatsEngine.calculateOverallStreakDetails(challenges, records)
+
             GlobalStats(
                 totalChallenges = totalChallengesCount,
                 totalCompletions = totalCompletions,
@@ -268,7 +270,8 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
                     val comp = records.filter { it.challengeId == challenge.id }
                     val stats = StatsEngine.calculateStats(challenge, comp)
                     ChallengeProgress(challenge, stats)
-                }
+                },
+                overallStreakDetails = overallStreakDetails
             )
         }
     }
@@ -278,7 +281,7 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
         return getGlobalStatsFlow().map { stats ->
             val activeChalCount = stats.totalChallenges
             val totalCompletions = stats.totalCompletions
-            val bestStreak = stats.bestStreak
+            val bestStreak = maxOf(stats.bestStreak, stats.overallStreakDetails?.longestActiveStreak ?: 0)
 
             listOf(
                 UiAchievement(
@@ -460,7 +463,8 @@ data class GlobalStats(
     val completionRateToday: Float,
     val bestStreak: Int,
     val categoryDistribution: List<CategoryStat>,
-    val challengeProgressList: List<ChallengeProgress>
+    val challengeProgressList: List<ChallengeProgress>,
+    val overallStreakDetails: com.example.utils.OverallStreakStats? = null
 )
 
 data class CategoryStat(val category: String, val completions: Int)

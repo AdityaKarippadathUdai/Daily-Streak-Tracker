@@ -85,15 +85,9 @@ fun HomeScreen(
     val totalCompletedCountToday = activeChallenges.count { todayCompletions[it.id] == true }
     val progressToday = if (totalActiveCount > 0) totalCompletedCountToday.toFloat() / totalActiveCount else 0F
 
-    // Overall Streak: Maximum current streak among all active challenges
-    val bestCurrentStreak = remember(activeChallenges, completions) {
-        if (activeChallenges.isEmpty()) 0
-        else {
-            activeChallenges.maxOfOrNull { challenge ->
-                val comp = completions.filter { it.challengeId == challenge.id }
-                StatsEngine.calculateStats(challenge, comp).currentStreak
-            } ?: 0
-        }
+    // Overall Streak Stats computed from our robust StatsEngine logic module
+    val overallStreak = remember(activeChallenges, completions) {
+        StatsEngine.calculateOverallStreakDetails(activeChallenges, completions)
     }
 
     Scaffold(
@@ -260,9 +254,7 @@ fun HomeScreen(
                     // 1. Stats Panel
                     item {
                         StreakHeaderCard(
-                            currentStreak = bestCurrentStreak,
-                            completedTodayCount = totalCompletedCountToday,
-                            totalChallengesCount = totalActiveCount,
+                            overallStreak = overallStreak,
                             progressFraction = progressToday
                         )
                     }
@@ -549,9 +541,7 @@ fun HomeScreen(
 
 @Composable
 fun StreakHeaderCard(
-    currentStreak: Int,
-    completedTodayCount: Int,
-    totalChallengesCount: Int,
+    overallStreak: com.example.utils.OverallStreakStats,
     progressFraction: Float
 ) {
     val isDark = MaterialTheme.colorScheme.background.red < 0.1f
@@ -574,93 +564,155 @@ fun StreakHeaderCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .testTag("overall_streak_header_card"),
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent
         ),
         shape = RoundedCornerShape(24.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(bgModifier)
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(20.dp)
         ) {
-            Column {
-                Text(
-                    text = "CURRENT STREAK",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF60A5FA),
-                    letterSpacing = 2.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Active Streak Block
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "$currentStreak",
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White,
-                        letterSpacing = (-1).sp
-                    )
-                    Text(
-                        text = "DAYS",
-                        fontSize = 16.sp,
+                        text = "ACTIVE STREAK",
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF93C5FD)
+                        color = Color(0xFF60A5FA),
+                        letterSpacing = 1.5.sp
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "${overallStreak.currentActiveStreak}",
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
+                            letterSpacing = (-1).sp
+                        )
+                        Text(
+                            text = "d",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF93C5FD)
+                        )
+                        Text(
+                            text = "🔥",
+                            fontSize = 20.sp
+                        )
+                    }
                     Text(
-                        text = "🔥",
-                        fontSize = 24.sp
+                        text = "Best: ${overallStreak.longestActiveStreak}d",
+                        fontSize = 10.sp,
+                        color = if (isDark) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                // Divider
+                Box(
+                    modifier = Modifier
+                        .height(54.dp)
+                        .width(1.dp)
+                        .background(if (isDark) Color.White.copy(alpha = 0.1f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                        .padding(horizontal = 8.dp)
+                )
+
+                // Perfect Days Streak Block
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = "PERFECT STREAK",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFBBF24),
+                        letterSpacing = 1.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "${overallStreak.currentPerfectStreak}",
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
+                            letterSpacing = (-1).sp
+                        )
+                        Text(
+                            text = "d",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFDE047)
+                        )
+                        Text(
+                            text = "👑",
+                            fontSize = 20.sp
+                        )
+                    }
+                    Text(
+                        text = "Best: ${overallStreak.longestPerfectStreak}d",
+                        fontSize = 10.sp,
+                        color = if (isDark) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .height(48.dp)
-                    .width(1.dp)
-                    .background(Color.White.copy(alpha = 0.1f))
-            )
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Column(
-                horizontalAlignment = Alignment.End
+            // Progress bar and today's summary text
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "COMPLETION",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF94A3B8),
-                    letterSpacing = 1.5.sp
+                    text = "Today's Progress (${overallStreak.todayCompletedCount}/${overallStreak.todayTotalCount} completed)",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isDark) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${(progressFraction * 100).toInt()}%",
-                    fontSize = 24.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color(0xFF3B82F6)
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+            ) {
                 Box(
                     modifier = Modifier
-                        .width(96.dp)
-                        .height(6.dp)
+                        .fillMaxWidth(progressFraction.coerceIn(0f, 1f))
+                        .fillMaxHeight()
                         .clip(CircleShape)
-                        .background(Color(0xFF1E293B))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(progressFraction.coerceIn(0f, 1f))
-                            .fillMaxHeight()
-                            .clip(CircleShape)
-                            .background(Color(0xFF3B82F6))
-                    )
-                }
+                        .background(Color(0xFF3B82F6))
+                )
             }
         }
     }
