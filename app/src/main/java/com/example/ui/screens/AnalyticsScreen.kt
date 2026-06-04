@@ -40,6 +40,10 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.viewmodel.ChallengeViewModel
 import java.util.*
 import java.text.SimpleDateFormat
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -408,11 +412,66 @@ fun AnalyticsMetricCard(
     }
 }
 
+data class WeeklyChartItem(
+    val dayName: String,
+    val dateStr: String,
+    val completionCount: Int,
+    val totalActive: Int,
+    val consistencyPercent: Float, // 0.0 to 1.0
+    val isToday: Boolean
+)
+
 @Composable
 fun WeeklyGridChart(progressList: List<com.example.ui.viewmodel.ChallengeProgress>) {
     val isDark = MaterialTheme.colorScheme.background.red < 0.1f
     val cardBg = if (isDark) Color(0xFF161618) else MaterialTheme.colorScheme.surface
     val borderCol = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Transparent
+
+    val chartData = remember(progressList) {
+        val cal = Calendar.getInstance()
+        val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time)
+        
+        // Find start of week (Monday)
+        val mondayCal = Calendar.getInstance()
+        val dayOfWeek = mondayCal.get(Calendar.DAY_OF_WEEK)
+        val daysToSubtract = if (dayOfWeek == Calendar.SUNDAY) 6 else dayOfWeek - Calendar.MONDAY
+        mondayCal.add(Calendar.DAY_OF_YEAR, -daysToSubtract)
+        
+        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val dayNames = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+        
+        val list = mutableListOf<WeeklyChartItem>()
+        val totalActive = progressList.size
+        
+        for (i in 0 until 7) {
+            val dateStr = dateFormat.format(mondayCal.time)
+            var count = 0
+            for (progress in progressList) {
+                if (progress.stats.monthlyHistory[dateStr] == true) {
+                    count++
+                }
+            }
+            val consistency = if (totalActive > 0) (count.toFloat() / totalActive.toFloat()) else 0f
+            list.add(
+                WeeklyChartItem(
+                    dayName = dayNames[i],
+                    dateStr = dateStr,
+                    completionCount = count,
+                    totalActive = totalActive,
+                    consistencyPercent = consistency,
+                    isToday = dateStr == todayStr
+                )
+            )
+            mondayCal.add(Calendar.DAY_OF_YEAR, 1)
+        }
+        list
+    }
+
+    var selectedIndex by remember { 
+        mutableStateOf<Int?>(
+            Calendar.getInstance().let { (it.get(Calendar.DAY_OF_WEEK) + 5) % 7 }
+        ) 
+    }
 
     Card(
         modifier = Modifier
@@ -423,71 +482,185 @@ fun WeeklyGridChart(progressList: List<com.example.ui.viewmodel.ChallengeProgres
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // We map completion volumes for the last 7 days of the active week.
-            val daysOfTheWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-            val completionsPerDayOfWeek = remember(progressList) {
-                // Collect and sum matching days from historical stats
-                val counts = IntArray(7) { 0 }
-                val cal = Calendar.getInstance()
-                val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-
-                // Fill current week
-                for (i in 0 until 7) {
-                    val dateStr = dateFormat.format(cal.time)
-                    val dayIdx = (cal.get(Calendar.DAY_OF_WEEK) + 5) % 7 // Convert Sunday=1, Monday=2 to Monday=0, Sunday=6
-                    for (progress in progressList) {
-                        if (progress.stats.monthlyHistory[dateStr] == true) {
-                            counts[dayIdx]++
-                        }
-                    }
-                    cal.add(Calendar.DAY_OF_YEAR, -1)
+            // Recharts Header: Legend & Instructions
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Consistency Curve",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Tap nodes to inspect details",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
                 }
-                counts.toList()
+                
+                // Recharts Legend
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                        Text(
+                            text = "Consistency",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f))
+                        )
+                        Text(
+                            text = "Target Met",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
-            val maxVolume = remember(completionsPerDayOfWeek) {
-                (completionsPerDayOfWeek.maxOrNull() ?: 4).coerceAtLeast(1)
-            }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            val lineColor = MaterialTheme.colorScheme.primary
-            val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
-
-            Box(
+            // Graph canvas area with interactive gestures
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp)
+                    .height(180.dp)
             ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val width = size.width
-                    val height = size.height
-                    val spacingX = width / 6
+                val width = constraints.maxWidth.toFloat()
+                val height = constraints.maxHeight.toFloat()
+                val spacingX = if (width > 0) width / 6f else 0f
+                val paddingBottom = 20f
+                val paddingTop = 15f
+                val verticalRange = height - paddingBottom - paddingTop
+                
+                val lineColor = MaterialTheme.colorScheme.primary
+                val gridColor = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)
+
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTapGestures { offset ->
+                                if (spacingX > 0) {
+                                    val idx = (offset.x / spacingX).roundToInt().coerceIn(0, 6)
+                                    selectedIndex = idx
+                                }
+                            }
+                        }
+                ) {
                     
-                    // Draw horizontal helping lines
+                    // 1. Draw Cartesian gridlines (Recharts strokeDasharray style)
                     val horizontalLinesCount = 4
+                    val pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f), 0f)
                     for (i in 0..horizontalLinesCount) {
-                        val y = height * (i.toFloat() / horizontalLinesCount)
+                        val y = paddingTop + (verticalRange * (i.toFloat() / horizontalLinesCount))
                         drawLine(
                             color = gridColor,
                             start = Offset(0f, y),
                             end = Offset(width, y),
-                            strokeWidth = 1f
+                            strokeWidth = 2f,
+                            pathEffect = pathEffect
+                        )
+                    }
+                    
+                    // Draw vertical guides for each day
+                    for (i in 0..6) {
+                        val x = i * spacingX
+                        drawLine(
+                            color = gridColor,
+                            start = Offset(x, paddingTop),
+                            end = Offset(x, height - paddingBottom),
+                            strokeWidth = 2f,
+                            pathEffect = pathEffect
                         )
                     }
 
-                    // Draw line curves connecting completion tally
-                    val points = completionsPerDayOfWeek.mapIndexed { idx, count ->
+                    // 2. Draw selected day vertical highlight column (Recharts Tooltip background overlay)
+                    selectedIndex?.let { idx ->
+                        val activeX = idx * spacingX
+                        drawRect(
+                            color = lineColor.copy(alpha = 0.04f),
+                            topLeft = Offset(activeX - (spacingX / 2.2f).coerceAtLeast(10f), paddingTop),
+                            size = androidx.compose.ui.geometry.Size(
+                                width = (spacingX / 1.1f).coerceAtLeast(20f),
+                                height = verticalRange
+                            )
+                        )
+                        drawLine(
+                            color = lineColor.copy(alpha = 0.15f),
+                            start = Offset(activeX, paddingTop),
+                            end = Offset(activeX, height - paddingBottom),
+                            strokeWidth = 2f
+                        )
+                    }
+
+                    // Map chart data to physical screen coordinate offsets
+                    val points = chartData.mapIndexed { idx, item ->
                         val x = idx * spacingX
-                        // Map y value. Higher yields less distance from top (y coordinate 0)
-                        val yValuePercent = count.toFloat() / maxVolume.toFloat()
-                        val y = height - (yValuePercent * (height - 30f)) - 15f
+                        val y = height - paddingBottom - (item.consistencyPercent * verticalRange)
                         Offset(x, y)
                     }
 
-                    val path = Path().apply {
-                        if (points.isNotEmpty()) {
+                    // 3. Draw Spline Area Gradient (Recharts <Area> gradient fill)
+                    if (points.isNotEmpty()) {
+                        val areaPath = Path().apply {
                             moveTo(points[0].x, points[0].y)
                             for (i in 1 until points.size) {
-                                // Draw fluid bezier curves for standard curves
+                                val prevPoint = points[i - 1]
+                                val currentPoint = points[i]
+                                val controlPoint1 = Offset(prevPoint.x + (currentPoint.x - prevPoint.x) / 2f, prevPoint.y)
+                                val controlPoint2 = Offset(prevPoint.x + (currentPoint.x - prevPoint.x) / 2f, currentPoint.y)
+                                cubicTo(
+                                    controlPoint1.x, controlPoint1.y,
+                                    controlPoint2.x, controlPoint2.y,
+                                    currentPoint.x, currentPoint.y
+                                )
+                            }
+                            // Close the area path to bottom edges for gradient rendering
+                            lineTo(points.last().x, height - paddingBottom)
+                            lineTo(points.first().x, height - paddingBottom)
+                            close()
+                        }
+                        
+                        drawPath(
+                            path = areaPath,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(lineColor.copy(alpha = 0.35f), Color.Transparent),
+                                startY = paddingTop,
+                                endY = height - paddingBottom
+                            )
+                        )
+
+                        // 4. Draw Thick Bezier Spline Line itself
+                        val linePath = Path().apply {
+                            moveTo(points[0].x, points[0].y)
+                            for (i in 1 until points.size) {
                                 val prevPoint = points[i - 1]
                                 val currentPoint = points[i]
                                 val controlPoint1 = Offset(prevPoint.x + (currentPoint.x - prevPoint.x) / 2f, prevPoint.y)
@@ -499,25 +672,37 @@ fun WeeklyGridChart(progressList: List<com.example.ui.viewmodel.ChallengeProgres
                                 )
                             }
                         }
+                        
+                        drawPath(
+                            path = linePath,
+                            color = lineColor,
+                            style = Stroke(width = 6f, cap = StrokeCap.Round)
+                        )
                     }
 
-                    // Draw thick path line
-                    drawPath(
-                        path = path,
-                        color = lineColor,
-                        style = Stroke(width = 6f, cap = StrokeCap.Round)
-                    )
+                    // 5. Draw Anchor Nodes with active state pulses
+                    points.forEachIndexed { idx, point ->
+                        val isSelected = selectedIndex == idx
+                        val outerRadius = if (isSelected) 10f else 6f
+                        val innerRadius = if (isSelected) 4f else 3f
+                        
+                        // Outer glowing ring for selection
+                        if (isSelected) {
+                            drawCircle(
+                                color = lineColor.copy(alpha = 0.25f),
+                                radius = 18f,
+                                center = point
+                            )
+                        }
 
-                    // Draw dot anchors at points
-                    points.forEach { point ->
                         drawCircle(
                             color = lineColor,
-                            radius = 6f,
+                            radius = outerRadius,
                             center = point
                         )
                         drawCircle(
                             color = Color.White,
-                            radius = 3f,
+                            radius = innerRadius,
                             center = point
                         )
                     }
@@ -526,20 +711,102 @@ fun WeeklyGridChart(progressList: List<com.example.ui.viewmodel.ChallengeProgres
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // X-Axis labels
+            // X-Axis text labels aligning Mon, Tue, Wed, Thu, Fri, Sat, Sun
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                daysOfTheWeek.forEach { label ->
+                chartData.forEachIndexed { idx, item ->
+                    val isSelected = selectedIndex == idx
                     Text(
-                        text = label,
+                        text = item.dayName,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.width(36.dp)
                     )
+                }
+            }
+
+            // Beautiful Recharts Hover Tooltip box displaying detailed analytics!
+            selectedIndex?.let { idx ->
+                val selectedItem = chartData.getOrNull(idx)
+                if (selectedItem != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Style the Tooltip Box like a beautiful dark translucent popover
+                    Surface(
+                        color = if (isDark) Color(0xFF222225) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = 1.dp,
+                                color = if (selectedItem.isToday) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent,
+                                shape = RoundedCornerShape(12.dp)
+                            ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = selectedItem.dayName,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (selectedItem.isToday) {
+                                        Box(
+                                            modifier = Modifier
+                                                .background(
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                                    shape = RoundedCornerShape(4.dp)
+                                                )
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = "TODAY",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "${selectedItem.completionCount} of ${selectedItem.totalActive} habits completed",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            // Right side: beautiful consistency badge
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = "${(selectedItem.consistencyPercent * 100).toInt()}%",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "CONSISTENCY",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
