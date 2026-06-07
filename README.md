@@ -4,21 +4,90 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Build System](https://img.shields.io/badge/Build%20System-Gradle-02303A?style=for-the-badge&logo=gradle&logoColor=white)](https://gradle.org)
 [![UI Toolkit](https://img.shields.io/badge/UI%20Toolkit-Jetpack%20Compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-**HabitFlow** is a native, high-performance, and offline-first personal growth application built for Android using **Kotlin**, **Jetpack Compose**, and **Material Design 3 (M3)**. Engineered with a premium **Dark Cosmic visual theme**, the app guides users towards building positive long-term habits using responsive analytics, gamified streak tracking, and interactive visualizations.
+**HabitFlow** is a native, offline-first personal growth app for Android built with **Kotlin**, **Jetpack Compose**, and **Material Design 3**. It helps users build positive long-term habits through gamified streak tracking, interactive analytics, and a premium Dark Cosmic visual theme — all stored entirely on-device with zero cloud dependency.
 
 ---
 
-## 📱 Architecture & Native State Engine (The LocalStorage Equivalent)
+## 📸 Screenshots
 
-In a web application, transient state resides in browser-level `localStorage` or session files. In a production-grade native mobile environment, such APIs are replaced with modern Android storage paradigms that guarantee high durability, process-death survivability, and zero latency.
+<table>
+  <tr>
+    <td align="center"><b>Daily Challenges</b></td>
+    <td align="center"><b>Performance Hub</b></td>
+    <td align="center"><b>One-off Tasks (Pending)</b></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/home_habits.png" width="200"/></td>
+    <td><img src="screenshots/analytics.png" width="200"/></td>
+    <td><img src="screenshots/tasks_pending.png" width="200"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Create Simple Task</b></td>
+    <td align="center"><b>One-off Tasks (Completed)</b></td>
+    <td align="center"><b>Metadata & Rules</b></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/create_task.png" width="200"/></td>
+    <td><img src="screenshots/tasks_completed.png" width="200"/></td>
+    <td><img src="screenshots/rules_light.png" width="200"/></td>
+  </tr>
+</table>
+
+---
+
+## ✨ Features
+
+### 🔥 Streak Tracking
+- **Active Streak** — increments any day at least one habit is completed
+- **Perfect Streak 👑** — increments only on days *all* active habits are completed
+- Historical best tracking for both streak types
+- Live today's progress bar with completion ratio
+
+### 📋 Habit Challenges
+- Create recurring daily habits with categories: Coding, Reading, Fitness, Health, and more
+- Per-habit progress counter (e.g. `1/50 08:00`) with subtask checklists
+- Category-based filter tabs for fast navigation
+
+### ✅ One-off Task Pipeline
+- Create deadline-bound tasks with title, description, deadline date, and daily reminder time
+- Tasks progress through states: Pending → Completed / Overdue
+- Task Pipeline summary card with circular completion percentage indicator
+- Filter tabs: All, Pending, Completed, Overdue
+
+### 📊 Performance Hub (Analytics)
+- Weekly **Consistency Curve** — a smooth cubic Bezier spline chart drawn via native Canvas `Path.cubicTo()`
+- Area gradient fill beneath the spline
+- Tappable day nodes with floating detail cards (habits completed, consistency %)
+- Responsive layout via `BoxWithConstraints` for phones, foldables, and tablets
+
+### 🎨 Visual Theme
+- **Cosmic Dark** and **Crisp Light** themes, plus System Default
+- Theme preference persisted instantly via `SharedPreferences` — zero flicker on cold start
+- Deep space palette: electric blue `#60A5FA`, amber `#FBBF24`, midnight canvas `#0D111F`→`#07090E`
+- Full edge-to-edge rendering with proper inset handling for status bar and nav gesture regions
+
+### 🔔 Notifications
+- Per-task and per-habit configurable daily reminder times
+- Background `AlarmManager` scheduling with `BroadcastReceiver` for reliable delivery
+
+### 💾 Data Export & Restore
+- Export all challenges, streaks, and logs to clipboard as JSON
+- Paste-to-restore for full data recovery on a new device
+
+---
+
+## 🏗️ Architecture
+
+HabitFlow follows strict **MVVM** with a reactive Room → ViewModel → Compose pipeline.
 
 ```
 ┌────────────────────────────────────────────────────────┐
 │                   Jetpack Compose UI                   │
 │           (HomeScreen, AnalyticsScreen, etc.)          │
 └───────────▲────────────────────────────────▲───────────┘
-            │                                │ CollectStateWithLifecycle
+            │                                │ collectAsStateWithLifecycle
             │ Flow<List<T>>                  │
 ┌───────────┴────────────────────────────────┴───────────┐
 │                    ChallengeViewModel                  │
@@ -30,71 +99,28 @@ In a web application, transient state resides in browser-level `localStorage` or
 │         Queries local SQLite schemas via Room DAOs     │
 └────────────┬───────────────┬───────────────────────────┘
              │               │
-┌────────────▼──────┐ ┌──────▼─────────────┐ ┌───────────▼───────┐
-│   ChallengeTable  │ │ CompletionRecord   │ │     TaskTable     │
-│ (Active/Archived) │ │ (yyyy-MM-dd logs)  │ │ (Subtask checklist)│
-└───────────────────┘ └────────────────────┘ └───────────────────┘
+┌────────────▼──────┐ ┌──────▼──────────────┐ ┌──────────▼────────┐
+│   ChallengeTable  │ │  CompletionRecord   │ │    TaskTable      │
+│ (Active/Archived) │ │  (yyyy-MM-dd logs)  │ │ (Subtask checklist)│
+└───────────────────┘ └─────────────────────┘ └───────────────────┘
 ```
 
-### 1. Robust SQLite Persistence via Room ORM
-All user-entered variables, checklist states, subtasks, custom habits, and decades of log lists are fully persisted directly inside a relational SQLite database.
-* **Non-Blocking Async Flows**: Data interfaces return reactive Kotlin `Flow<List<T>>` objects. Database triggers automatically re-route stream events to update the UI on the spot.
-* **Entities**:
-  * `Challenge`: Tracks core habits, templates, recurring periodic schedules, and categories (e.g., Health, Fitness, Mind).
-  * `CompletionRecord`: Tracks instances of daily clears, linking unique challenge IDs to a specific calendar date query `yyyy-MM-dd`.
-  * `Task`: Lightweight checkable sub-elements associated with specific habits to support multi-step micro-routines.
+### Room ORM (SQLite)
+All habits, completion logs, and subtasks are stored in a local SQLite database via Room.
 
-### 2. High-Speed App State Preferences (SharedPreferences)
-User theme variables—such as preferring **Light Mode**, **Pure Midnight Black**, or falling back to the **System Default**—are written using native key-value Android `SharedPreferences`. This keeps styling details immediately ready before the first Compose rendering cycle, completely mitigating screen-flicker issues.
+| Entity | Purpose |
+|---|---|
+| `Challenge` | Core habit — title, category, icon, recurrence schedule |
+| `CompletionRecord` | Daily completion log keyed by `challengeId` + `yyyy-MM-dd` |
+| `Task` | One-off task with deadline, reminder time, and completion timestamp |
 
-### 3. State Generation and ViewModel Pipeline
-The architecture follows strict **MVVM (Model-View-ViewModel)** guidelines. `ChallengeViewModel` translates SQLite database repositories into readable states:
-* Combines active listings and completions via Kotlin `combine` operators.
-* Formulates a live memory footprint using `.stateIn(scope, SharingStarted.WhileSubscribed(5000), default)` ensuring zero thread-blocking and zero overhead when apps run in the background.
+Database interfaces return reactive `Flow<List<T>>` — the UI re-renders automatically on any write.
 
----
+### ViewModel State
+`ChallengeViewModel` combines active challenges and completion records using Kotlin `combine` and exposes a single `StateFlow` via `.stateIn(scope, SharingStarted.WhileSubscribed(5000), default)`.
 
-## 📈 Advanced Streak & Milestone Engine
-
-Calculating exact streaks based on raw calendar listings requires robust historical mapping. HabitFlow handles this locally on-device inside a specialized mathematical helper (`StatsEngine.kt`):
-
-* **Active Days Streak**: Analyzes historical `CompletionRecord` entries. Ensures that if at least one habit of any category is finished on a calendar date, the general active streak of consistency is incremented.
-* **Perfect Days Streak 👑**: Identifies consecutive days where **all active habits** are checked off. This represents absolute focus and is gamified through unique visual dashboard alerts.
-* **Historical High Marks**: Keeps a continuous track of the highest historical active/perfect intervals ever cleared, so users can visual-progress metrics over time.
-
----
-
-## 📊 Interactive "Recharts"-Style Spline Canvas Chart
-
-To provide developers and users with rich visual-analytics similar to leading web dashboards, HabitFlow features a custom-built interactive **Consistency Analysis spline chart**:
-
-```
-Consistency Curve (Mon ➔ Sun)
-   ▲  
-   │            ╭───●───╮       ●  (Outer Glow: Selected Day Mon) 40%
-1  ├───────────╭╯  / \  ╰╮─────/──── [Area Gradient Underlay]
-   │          ╭╯  /   \  ╰╮   /
-0.5├─────────╭╯  /     \  ╰╮╭/
-   │   ●────╭╯  /       \  ╰●
-   └─┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──► Days
-    (Mon Tue Wed Thu Fri Sat Sun)
-```
-
-* **Cubic Bezier Spline Curves**: Replaces step-wise graphs with beautifully curved cubic paths. Utilizing native `Path.cubicTo()` formulas, the Canvas paints a smooth anti-aliased trail across nodes.
-* **Responsive Area Gradient**: Mimics premium web visualization engines (like Recharts) by filling the area bounded beneath the spline curve with a dynamic `Brush.verticalGradient` that tapers down to transparent.
-* **Interactive Tooltip Display**: Implements gesture-detecting pointer listeners inside `Modifier.pointerInput`. Tapping any vertical column calculates coordinates, triggers visual node pulses, and highlights a floating card summarizing total checks, active ratios, and percentage consistency.
-* **Dynamic Grid Layout**: Calculates layout widths via `BoxWithConstraints` to scale correctly across phones, foldables, and wide tablets without pixel-stretching.
-
----
-
-## 🎨 Visual Identity & Material 3 Specs
-
-HabitFlow adheres strictly to the Material Design 3 guidelines to establish an inviting, modern workspace:
-
-* **Dark Cosmic Visual Palette**: Custom dark components use high-contrast blue (`#60A5FA`), amber (`#FBBF24`), and deep space-slate canvas backdrops (`#0D111F` to `#07090E`).
-* **Fluid Spacing System**: Explicit 8dp grid alignments, ensuring consistent padded buffers ranging from 12dp to 24dp for a balanced and breathable experience.
-* **Edge-to-Edge Fluidity**: Uses Compose `enableEdgeToEdge()` configurations alongside proper layout inset modifiers to merge with status bars, system navigation handles, and display cutouts.
-* **Custom Adaptive Launcher Icon**: The application is configured with structured adaptive icon resources (`res/mipmap-anydpi-v26`), overlaying a brand vector drawable over a premium space-midnight background vector gradient.
+### SharedPreferences
+Theme selection (Cosmic Dark / Crisp Light / System) is written to `SharedPreferences` so it is available before the first Compose frame — eliminating any cold-start theme flicker.
 
 ---
 
@@ -106,61 +132,87 @@ HabitFlow adheres strictly to the Material Design 3 guidelines to establish an i
 │   ├── src/
 │   │   ├── main/
 │   │   │   ├── java/com/example/
-│   │   │   │   ├── MainActivity.kt               # Entrypoint, Navigation routing structure
+│   │   │   │   ├── MainActivity.kt
 │   │   │   │   ├── data/
-│   │   │   │   │   ├── database/AppDatabase.kt   # Room Database class & Migration setup
-│   │   │   │   │   ├── model/                    # Kotlin Models (Challenge, CompletionRecord)
-│   │   │   │   │   └── repository/               # Repository pattern layer
-│   │   │   │   ├── notification/                 # Background alarm schedules & receivers
+│   │   │   │   │   ├── database/AppDatabase.kt
+│   │   │   │   │   ├── model/                     # Challenge, CompletionRecord, Task
+│   │   │   │   │   └── repository/
+│   │   │   │   ├── notification/                  # AlarmManager + BroadcastReceiver
 │   │   │   │   ├── ui/
-│   │   │   │   │   ├── screens/                  # Navigational Views (Home, Analytics, Achievements, etc.)
-│   │   │   │   │   ├── theme/                    # Theme, Color, Typography, Shapes definitions
-│   │   │   │   │   └── viewmodel/                # ChallengeViewModel
+│   │   │   │   │   ├── screens/                   # HomeScreen, AnalyticsScreen, MedalsScreen, RulesScreen
+│   │   │   │   │   ├── theme/                     # Color, Typography, Shape, Theme
+│   │   │   │   │   └── viewmodel/ChallengeViewModel.kt
 │   │   │   │   └── utils/
-│   │   │   │       └── ChallengeStats.kt         # StatsEngine & overall streak analytics
+│   │   │   │       └── ChallengeStats.kt          # StatsEngine — streak & analytics logic
 │   │   │   └── res/
-│   │   │       ├── drawable/                     # Icons, vector backgrounds, custom launcher graphics
-│   │   │       └── values/strings.xml            # App name definitions and localization keys
-│   │   └── test/java/com/example/                # Unit Tests & JVM Robolectric controllers
-└── build.gradle.kts                              # Root project dependencies & metadata
+│   │   │       ├── drawable/
+│   │   │       ├── mipmap-anydpi-v26/             # Adaptive launcher icon
+│   │   │       └── values/strings.xml
+│   │   └── test/java/com/example/
+│   │       ├── ExampleUnitTest.kt
+│   │       ├── ExampleRobolectricTest.kt
+│   │       └── GreetingScreenshotTest.kt
+└── build.gradle.kts
 ```
 
 ---
 
-## 🛠️ Developer Setup & Build Instructions
-
-Follow these simple steps to compile, install, and run HabitFlow locally:
+## 🛠️ Setup & Build
 
 ### Prerequisites
-* **Android Studio Core / Koala / Ladybug** or newer.
-* **JDK 17** installed and configured in your shell path.
-* An active Android Emulator or a physical device connected via USB debugging.
+- **Android Studio** Koala (2024.1) or newer
+- **JDK 17**
+- Android Emulator or physical device with USB debugging enabled (API 26+)
 
-### 1. Verification & Compilation
-First, verify standard build definitions, compile-time Kotlin generation tasks, and Room schema configurations:
+### Clone
 ```bash
-gradle compileDebugKotlin
+git clone https://github.com/AdityaKarippadathUdai/Daily-Streak-Tracker.git
+cd Daily-Streak-Tracker
 ```
 
-### 2. Build Debug APK
-Generate an installable `.apk` package locally:
+### Compile Kotlin Sources
 ```bash
-gradle assembleDebug
+./gradlew compileDebugKotlin
 ```
-The output file is located at: `app/build/outputs/apk/debug/app-debug.apk`
 
-### 3. Run JUnit & Robolectric Tests
-HabitFlow implements extensive Unit testing suites testing core functionality and engine parameters. Run tests with:
+### Build Debug APK
 ```bash
-gradle :app:testDebugUnitTest
+./gradlew assembleDebug
+```
+Output: `app/build/outputs/apk/debug/app-debug.apk`
+
+### Install on Connected Device
+```bash
+./gradlew installDebug
+```
+
+### Run Unit Tests
+```bash
+./gradlew :app:testDebugUnitTest
 ```
 
 ---
 
-## 🧪 Testing Suite Overview
+## 🧪 Testing
 
-To preserve maximum regression protection, the project houses high-speed local JVM testing structures in `/app/src/test`:
+| Test File | Scope |
+|---|---|
+| `ExampleUnitTest.kt` | Pure JVM — date formatting, streak calculations, string utilities |
+| `ExampleRobolectricTest.kt` | Android context simulation — `SharedPreferences`, Activity lifecycle, Room queries |
+| `GreetingScreenshotTest.kt` | Roborazzi visual regression — Compose layout snapshot comparison |
 
-* **ExampleUnitTest.kt**: Validates basic calculations, dates formatting constraints, and basic string comparisons.
-* **ExampleRobolectricTest.kt**: Simulates full Android context environments (e.g., testing `SharedPreferences` read/whites, activity components, database workflows) inside rapid-firing Java Virtual Machines without emulation overhead.
-* **GreetingScreenshotTest.kt**: Configured with Roborazzi to conduct Visual verification audits on compose containers, ensuring layout coordinates are not accidentally shifted.
+---
+
+## 🛣️ Roadmap
+
+- [ ] Widgets (Glance API) for home-screen streak display
+- [ ] CSV export in addition to JSON
+- [ ] Cloud sync via Firebase (opt-in)
+- [ ] Habit templates library
+- [ ] Weekly review summary notification
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
