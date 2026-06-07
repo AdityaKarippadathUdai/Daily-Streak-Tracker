@@ -127,32 +127,77 @@ Theme selection (Cosmic Dark / Crisp Light / System) is written to `SharedPrefer
 ## 📂 Project Structure
 
 ```
-/
+Daily-Streak-Tracker/
 ├── app/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/example/
-│   │   │   │   ├── MainActivity.kt
-│   │   │   │   ├── data/
-│   │   │   │   │   ├── database/AppDatabase.kt
-│   │   │   │   │   ├── model/                     # Challenge, CompletionRecord, Task
-│   │   │   │   │   └── repository/
-│   │   │   │   ├── notification/                  # AlarmManager + BroadcastReceiver
-│   │   │   │   ├── ui/
-│   │   │   │   │   ├── screens/                   # HomeScreen, AnalyticsScreen, MedalsScreen, RulesScreen
-│   │   │   │   │   ├── theme/                     # Color, Typography, Shape, Theme
-│   │   │   │   │   └── viewmodel/ChallengeViewModel.kt
-│   │   │   │   └── utils/
-│   │   │   │       └── ChallengeStats.kt          # StatsEngine — streak & analytics logic
-│   │   │   └── res/
-│   │   │       ├── drawable/
-│   │   │       ├── mipmap-anydpi-v26/             # Adaptive launcher icon
-│   │   │       └── values/strings.xml
-│   │   └── test/java/com/example/
-│   │       ├── ExampleUnitTest.kt
-│   │       ├── ExampleRobolectricTest.kt
-│   │       └── GreetingScreenshotTest.kt
-└── build.gradle.kts
+│   ├── build.gradle.kts
+│   ├── proguard-rules.pro
+│   └── src/
+│       ├── main/
+│       │   ├── AndroidManifest.xml
+│       │   ├── java/com/example/
+│       │   │   ├── MainActivity.kt
+│       │   │   ├── data/
+│       │   │   │   ├── database/
+│       │   │   │   │   ├── AppDatabase.kt          # Room DB class & migration config
+│       │   │   │   │   └── DAOs.kt                 # Data Access Objects for all entities
+│       │   │   │   ├── model/
+│       │   │   │   │   ├── Models.kt               # Challenge, CompletionRecord, Task entities
+│       │   │   │   │   └── ChallengeTemplates.kt   # Predefined habit templates
+│       │   │   │   └── repository/
+│       │   │   │       └── ChallengeRepository.kt  # Single source of truth for data ops
+│       │   │   ├── notification/
+│       │   │   │   ├── AlarmScheduler.kt           # Schedules AlarmManager reminders
+│       │   │   │   ├── BootCompletedReceiver.kt    # Reschedules alarms after reboot
+│       │   │   │   ├── ChallengeReminderReceiver.kt
+│       │   │   │   └── TaskReminderReceiver.kt
+│       │   │   ├── ui/
+│       │   │   │   ├── screens/
+│       │   │   │   │   ├── HomeScreen.kt           # Daily habits + one-off tasks tabs
+│       │   │   │   │   ├── AnalyticsScreen.kt      # Consistency Curve spline chart
+│       │   │   │   │   ├── AchievementsScreen.kt   # Medals & milestone badges
+│       │   │   │   │   ├── SettingsScreen.kt       # Theme, export, restore, reset
+│       │   │   │   │   ├── CreateChallengeScreen.kt
+│       │   │   │   │   ├── CreateTaskScreen.kt
+│       │   │   │   │   ├── DetailsScreen.kt
+│       │   │   │   │   └── SplashScreen.kt
+│       │   │   │   ├── theme/
+│       │   │   │   │   ├── Color.kt                # Cosmic Dark & Crisp Light palettes
+│       │   │   │   │   ├── Theme.kt                # MaterialTheme wiring + SharedPrefs
+│       │   │   │   │   └── Type.kt                 # Typography scale
+│       │   │   │   └── viewmodel/
+│       │   │   │       └── ChallengeViewModel.kt   # StateFlow + combine operators
+│       │   │   └── utils/
+│       │   │       └── ChallengeStats.kt           # Streak engine & analytics helpers
+│       │   └── res/
+│       │       ├── drawable/                       # Vector icons & launcher assets
+│       │       ├── mipmap-anydpi-v26/              # Adaptive launcher icon descriptors
+│       │       ├── mipmap-{hdpi,xhdpi,xxhdpi,xxxhdpi}/
+│       │       └── values/
+│       │           ├── colors.xml
+│       │           ├── strings.xml
+│       │           └── themes.xml
+│       ├── androidTest/
+│       │   └── java/com/example/
+│       │       └── ExampleInstrumentedTest.kt
+│       └── test/
+│           ├── java/com/example/
+│           │   ├── ExampleUnitTest.kt              # Pure JVM calculations & formatting
+│           │   ├── ExampleRobolectricTest.kt       # SharedPrefs, DB, Activity tests
+│           │   └── GreetingScreenshotTest.kt       # Roborazzi visual regression
+│           └── screenshots/
+│               └── greeting.png                   # Snapshot baseline
+├── screenshots/                                    # README preview images
+├── gradle/
+│   ├── libs.versions.toml                         # Version catalog
+│   └── wrapper/
+├── build.gradle.kts
+├── settings.gradle.kts
+├── gradle.properties
+├── metadata.json
+├── README.md
+└── LICENSE
+```
+
 ```
 
 ---
