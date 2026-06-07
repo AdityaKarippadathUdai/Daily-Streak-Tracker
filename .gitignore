@@ -16,3 +16,67 @@
 local.properties
 .env
 debug.keystore
+# Gradle
+
+.gradle/
+build/
+*/build/
+
+# Local configuration
+
+local.properties
+
+# Android Studio
+
+.idea/
+*.iml
+
+# APKs
+
+*.apk
+*.aab
+
+# Logs
+
+*.log
+
+# Keystore files
+
+*.jks
+*.keystore
+debug.keystore
+
+# Environment files
+
+.env
+.env.local
+
+# OS files
+
+.DS_Store
+Thumbs.db
+
+# Kotlin
+
+.kotlin/
+
+# Generated files
+
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android Studio cache
+
+.navigation/
+.caches/
+
+# Screenshots generated during tests
+
+app/src/test/screenshots/generated/
+
+# Temporary files
+
+tmp/
+out/
+
