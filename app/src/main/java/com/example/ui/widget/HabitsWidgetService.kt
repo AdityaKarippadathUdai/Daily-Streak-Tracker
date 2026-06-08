@@ -45,7 +45,7 @@ class HabitsWidgetFactory(private val context: Context) : RemoteViewsService.Rem
             runBlocking(Dispatchers.IO) {
                 val db = AppDatabase.getDatabase(context)
                 // Filter only active habits
-                val allChallenges = db.challengeDao().getAllChallenges().first()
+                val allChallenges = db.challengeDao().getAllChallengesDirect()
                 habitsList = allChallenges.filter { it.active }
 
                 // Get completions for today

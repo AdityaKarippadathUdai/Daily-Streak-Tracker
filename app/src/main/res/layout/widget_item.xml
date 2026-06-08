@@ -7,14 +7,15 @@
     android:gravity="center_vertical"
     android:background="@drawable/bg_widget_item"
     android:padding="8dp"
-    android:layout_marginHorizontal="2dp">
+    android:layout_marginLeft="2dp"
+    android:layout_marginRight="2dp">
 
     <!-- Glowing checkbox state indicator -->
     <ImageView
         android:id="@+id/widget_item_checkbox"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:layout_marginEnd="10dp"
+        android:layout_marginRight="10dp"
         android:src="@drawable/ic_widget_check_off"
         android:contentDescription="Checkbox" />
 

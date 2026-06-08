@@ -80,6 +80,13 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
             SharingStarted.WhileSubscribed(5000),
             emptyList()
         )
+
+        // Automatically update home screen widgets reactively whenever challenges or completions are altered
+        viewModelScope.launch {
+            combine(allChallenges, allCompletionRecords) { _, _ -> }.collect {
+                updateWidgets()
+            }
+        }
     }
 
     fun setTheme(theme: String) {

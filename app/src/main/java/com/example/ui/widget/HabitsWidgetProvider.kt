@@ -56,8 +56,8 @@ class HabitsWidgetProvider : AppWidgetProvider() {
         coroutineScope.launch {
             try {
                 val database = AppDatabase.getDatabase(context)
-                val challenges = database.challengeDao().getAllChallenges().first()
-                val records = database.completionRecordDao().getAllCompletionRecords().first()
+                val challenges = database.challengeDao().getAllChallengesDirect()
+                val records = database.completionRecordDao().getAllCompletionRecordsDirect()
                 
                 // Calculate actual metrics using the core mathematical stats engine
                 val stats = StatsEngine.calculateOverallStreakDetails(challenges, records)
