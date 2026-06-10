@@ -33,8 +33,8 @@ private val LightColorScheme = lightColorScheme(
     onTertiary = Color.White,
     onBackground = LightOnBg,
     onSurface = LightOnSurface,
-    surfaceVariant = Color(0xFFE2E8F0),
-    onSurfaceVariant = Color(0xFF64748B)
+    surfaceVariant = Color(0xFFEEF2FF), // Soft active lavender-indigo tint background
+    onSurfaceVariant = Color(0xFF4338CA) // Modern deep indigo contrast text with purple hue
 )
 
 @Composable

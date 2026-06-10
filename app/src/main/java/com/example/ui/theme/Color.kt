@@ -2,14 +2,14 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light Theme (White & Grey)
-val LightBg = Color(0xFFF9FAFB)
-val LightSurface = Color(0xFFFFFFFF)
-val LightPrimary = Color(0xFF1E3A8A) // Dark classy navy blue
-val LightSecondary = Color(0xFF3B82F6) // Vivid blue
-val LightTertiary = Color(0xFF10B981) // Green accent
-val LightOnBg = Color(0xFF111827) // Midnight black
-val LightOnSurface = Color(0xFF1F2937) // Deep grey
+// Light Theme (Indigo/Purple/Sky Slate)
+val LightBg = Color(0xFFF5F7FF) // Extremely soft pastel blue-lavender tint
+val LightSurface = Color(0xFFFFFFFF) // High-contrast clean white card surface
+val LightPrimary = Color(0xFF4F46E5) // Premium Royal Indigo-Blue
+val LightSecondary = Color(0xFF7C3AED) // Vibrant Violet-Purple
+val LightTertiary = Color(0xFF0EA5E9) // Bright Sky Blue accent
+val LightOnBg = Color(0xFF0F172A) // Sleek Slate-900 (deep dark blue-grey)
+val LightOnSurface = Color(0xFF1E293B) // Slate-800 for high-contrast reading
 
 // Dark Theme (Black & Blue)
 val DarkBg = Color(0xFF050505) // Deep pitch black
