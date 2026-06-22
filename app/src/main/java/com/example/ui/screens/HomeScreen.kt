@@ -107,11 +107,12 @@ fun HomeScreen(
                                 val sdf = java.text.SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
                                 sdf.format(cal.time)
                             }
+                            val isDark = MaterialTheme.colorScheme.background.red < 0.1f
                             Text(
                                 text = todayDateStr.uppercase(),
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF60A5FA),
+                                color = if (isDark) Color(0xFF60A5FA) else MaterialTheme.colorScheme.primary,
                                 letterSpacing = 1.5.sp
                             )
                             Text(
@@ -124,8 +125,8 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(Color(0xFF2563EB), CircleShape)
-                                .border(1.5.dp, Color(0xFF60A5FA).copy(alpha = 0.3f), CircleShape),
+                                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -590,7 +591,7 @@ fun StreakHeaderCard(
                         text = "ACTIVE STREAK",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF60A5FA),
+                        color = if (isDark) Color(0xFF60A5FA) else MaterialTheme.colorScheme.primary,
                         letterSpacing = 1.5.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -609,7 +610,7 @@ fun StreakHeaderCard(
                             text = "d",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF93C5FD)
+                            color = if (isDark) Color(0xFF93C5FD) else MaterialTheme.colorScheme.secondary
                         )
                         Text(
                             text = "🔥",
@@ -695,7 +696,7 @@ fun StreakHeaderCard(
                     text = "${(progressFraction * 100).toInt()}%",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF3B82F6)
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
@@ -704,14 +705,14 @@ fun StreakHeaderCard(
                     .fillMaxWidth()
                     .height(6.dp)
                     .clip(CircleShape)
-                    .background(if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                    .background(if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(progressFraction.coerceIn(0f, 1f))
                         .fillMaxHeight()
                         .clip(CircleShape)
-                        .background(Color(0xFF3B82F6))
+                        .background(MaterialTheme.colorScheme.primary)
                 )
             }
         }
@@ -818,7 +819,7 @@ fun ChallengeCard(
                             .weight(1f)
                             .height(4.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF1E293B))
+                            .background(if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0))
                     ) {
                         Box(
                             modifier = Modifier
@@ -1116,7 +1117,7 @@ fun TaskHeaderCard(
     val cardBg = if (isDark) {
         Brush.verticalGradient(listOf(Color(0xFF1E293B), Color(0xFF0F172A)))
     } else {
-        Brush.verticalGradient(listOf(Color(0xFFEFF6FF), Color(0xFFDBEAFE)))
+        Brush.verticalGradient(listOf(Color(0xFFEEF2FF), Color(0xFFC7D2FE)))
     }
     
     Card(
@@ -1138,7 +1139,7 @@ fun TaskHeaderCard(
                         text = "TASK PIPELINE",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
+                        color = if (isDark) Color(0xFF60A5FA) else MaterialTheme.colorScheme.primary,
                         letterSpacing = 1.2.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -1166,7 +1167,7 @@ fun TaskHeaderCard(
                     CircularProgressIndicator(
                         progress = { progress },
                         modifier = Modifier.fillMaxSize(),
-                        color = if (isDark) Color(0xFF3B82F6) else Color(0xFF2563EB),
+                        color = if (isDark) Color(0xFF3B82F6) else MaterialTheme.colorScheme.primary,
                         trackColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
                         strokeWidth = 6.dp,
                     )

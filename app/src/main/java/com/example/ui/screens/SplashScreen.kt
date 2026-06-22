@@ -54,7 +54,7 @@ fun SplashScreen(onNavigateToHome: () -> Unit) {
                     colors = if (MaterialTheme.colorScheme.background.red < 0.1f) {
                         listOf(Color(0xFF010102), Color(0xFF050505), Color(0xFF0C101B))
                     } else {
-                        listOf(Color(0xFFEFF6FF), Color(0xFFF9FAFB), Color(0xFFDBEAFE))
+                        listOf(Color(0xFFEEF2FF), Color(0xFFF5F7FF), Color(0xFFC7D2FE))
                     }
                 )
             )

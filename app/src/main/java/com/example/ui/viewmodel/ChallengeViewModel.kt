@@ -80,11 +80,26 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
             SharingStarted.WhileSubscribed(5000),
             emptyList()
         )
+
+        // Automatically update home screen widgets reactively whenever challenges or completions are altered
+        viewModelScope.launch {
+            combine(allChallenges, allCompletionRecords) { _, _ -> }.collect {
+                updateWidgets()
+            }
+        }
     }
 
     fun setTheme(theme: String) {
         sharedPrefs.edit().putString("theme", theme).apply()
         _themeState.value = theme
+    }
+
+    private fun updateWidgets() {
+        try {
+            com.example.ui.widget.HabitsWidgetProvider.triggerWidgetUpdate(getApplication())
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to broadcast widget update: ", e)
+        }
     }
 
     // Toggle today's completion
@@ -93,6 +108,7 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch(Dispatchers.IO) {
             val marked = repository.toggleCompletion(challengeId, todayStr)
             Log.d(TAG, "Completion for $challengeId toggled to $marked for date $todayStr")
+            updateWidgets()
         }
     }
 
@@ -100,6 +116,7 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
     fun toggleDateCompletion(challengeId: Int, dateStr: String) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.toggleCompletion(challengeId, dateStr)
+            updateWidgets()
         }
     }
 
@@ -134,6 +151,7 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
             if (reminderTime != null) {
                 AlarmScheduler.scheduleReminder(getApplication(), updatedChallenge)
             }
+            updateWidgets()
         }
     }
 
@@ -161,6 +179,7 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
             } else {
                 AlarmScheduler.cancelReminder(getApplication(), challenge.id)
             }
+            updateWidgets()
         }
     }
 
@@ -175,6 +194,7 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch(Dispatchers.IO) {
             AlarmScheduler.cancelReminder(getApplication(), challenge.id)
             repository.deleteChallenge(challenge)
+            updateWidgets()
         }
     }
 
@@ -435,6 +455,7 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
                         completed = obj.getBoolean("completed")
                     )
                 }
+                updateWidgets()
             }
             true
         } catch (e: Exception) {
@@ -452,6 +473,7 @@ class ChallengeViewModel(application: Application) : AndroidViewModel(applicatio
             // Re-instantiate DB cleanly to clear tables or just delete manually
             val db = AppDatabase.getDatabase(getApplication())
             db.clearAllTables()
+            updateWidgets()
         }
     }
 }

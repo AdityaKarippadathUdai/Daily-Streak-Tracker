@@ -424,12 +424,12 @@ fun HeatmapGraph(history: Map<String, Boolean>, themeColor: Color) {
 
                     val boxBg = when {
                         isCompleted -> themeColor
-                        isToday -> Color(0xFF3B82F6).copy(alpha = 0.2f)
+                        isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                         else -> if (isDark) Color(0xFF101011) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
                     }
 
                     val borderModifier = if (isToday && !isCompleted) {
-                        Modifier.border(1.dp, Color(0xFF3B82F6), RoundedCornerShape(4.dp))
+                        Modifier.border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
                     } else {
                         Modifier
                     }
@@ -472,7 +472,7 @@ fun HeatmapGraph(history: Map<String, Boolean>, themeColor: Color) {
                 Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).background(if (isDark) Color(0xFF101011) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Today ", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).border(1.dp, Color(0xFF3B82F6), RoundedCornerShape(4.dp)).background(Color(0xFF3B82F6).copy(alpha = 0.2f)))
+                Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Completed ", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).background(themeColor))

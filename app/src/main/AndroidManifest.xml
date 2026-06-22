@@ -47,6 +47,26 @@
             </intent-filter>
         </receiver>
 
+        <!-- Home Screen Habits Checklist AppWidget Provider -->
+        <receiver
+            android:name="com.example.ui.widget.HabitsWidgetProvider"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.action.TOGGLE_HABIT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/habits_widget_info" />
+        </receiver>
+
+        <!-- Widget Collection List Service -->
+        <service
+            android:name="com.example.ui.widget.HabitsWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
     </application>
 
 </manifest>

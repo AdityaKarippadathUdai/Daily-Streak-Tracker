@@ -46,7 +46,7 @@ fun CreateChallengeScreen(
     var description by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Coding") }
     var targetDays by remember { mutableStateOf("30") }
-    var selectedColorHex by remember { mutableStateOf("#3B82F6") } // Blue default
+    var selectedColorHex by remember { mutableStateOf("#4F46E5") } // Royal Indigo-Blue default
     var reminderTime by remember { mutableStateOf<String?>("08:00") } // HH:mm format
 
     // Validation errors state
@@ -55,13 +55,14 @@ fun CreateChallengeScreen(
 
     val categories = listOf("Coding", "Reading", "Fitness", "Health", "Photography", "Meditation", "Learning")
     val colors = listOf(
-        "#3B82F6", // Blue
+        "#4F46E5", // Royal Indigo-Blue
+        "#7C3AED", // Royal Purple
+        "#3B82F6", // Electric Blue
         "#8B5CF6", // Purple
-        "#10B981", // Green
         "#06B6D4", // Cyan
-        "#F59E0B", // Orange
+        "#10B981", // Green
         "#EC4899", // Pink
-        "#EF4444"  // Red
+        "#F59E0B"  // Orange
     )
 
     Scaffold(

@@ -11,6 +11,9 @@ interface ChallengeDao {
     @Query("SELECT * FROM challenges ORDER BY createdAt DESC")
     fun getAllChallenges(): Flow<List<Challenge>>
 
+    @Query("SELECT * FROM challenges ORDER BY createdAt DESC")
+    suspend fun getAllChallengesDirect(): List<Challenge>
+
     @Query("SELECT * FROM challenges WHERE id = :id")
     suspend fun getChallengeById(id: Int): Challenge?
 
@@ -28,6 +31,9 @@ interface ChallengeDao {
 interface CompletionRecordDao {
     @Query("SELECT * FROM completion_records ORDER BY timestamp DESC")
     fun getAllCompletionRecords(): Flow<List<CompletionRecord>>
+
+    @Query("SELECT * FROM completion_records ORDER BY timestamp DESC")
+    suspend fun getAllCompletionRecordsDirect(): List<CompletionRecord>
 
     @Query("SELECT * FROM completion_records WHERE challengeId = :challengeId ORDER BY date ASC")
     fun getCompletionsByChallenge(challengeId: Int): Flow<List<CompletionRecord>>
